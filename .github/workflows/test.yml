@@ -1,0 +1,49 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Run tests
+      run: |
+        python test_simple.py
+        python test_generator.py
+    
+    - name: Test command line interface
+      run: |
+        # Test basic ethernet DHCP
+        python netplan_generator.py --ethernet eth0
+        
+        # Test static ethernet
+        python netplan_generator.py --ethernet eth0 --static --addresses 192.168.1.100/24 --gateway4 192.168.1.1
+        
+        # Test bond
+        python netplan_generator.py --bond bond0 --bond-interfaces eth0,eth1
+        
+        # Test bridge
+        python netplan_generator.py --bridge br0 --bridge-interfaces eth0,eth1
+        
+        # Test output to file
+        python netplan_generator.py --ethernet eth0 --output test-config.yaml
+        cat test-config.yaml
+        
+    - name: Run examples
+      run: |
+        python examples.py
