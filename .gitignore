@@ -134,6 +134,13 @@ dmypy.json
 !examples/*.yaml
 !examples/*.yml
 
+# Go binaries
+netplan_generator
+netplan_generator.exe
+netplan-generator
+netplan-generator.exe
+netplan-generator-*
+
 # IDE files
 .vscode/
 .idea/

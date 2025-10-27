@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README*.md
+CHANGELOG.md
+CONTRIBUTING.md
+
+# Build artifacts
+netplan-generator*
+release/
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (not needed in image)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Python files (exclude all Python-related files)
+*.py
+*.pyc
+__pycache__/
+requirements.txt
+netplan_generator.py
+test_simple.py
+test_generator.py
+examples.py
+
+# License files
+LICENSE
+GPLv3.txt

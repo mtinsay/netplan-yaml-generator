@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netplan YAML Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .version-info {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+        
+        .version-info small {
+            color: #95a5a6;
+            font-size: 0.9em;
+        }
+        
+        .version-info a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .version-info a:hover {
+            text-decoration: underline;
+        }
+        
+        .about-btn {
+            background: none;
+            border: 1px solid #3498db;
+            color: #3498db;
+            padding: 2px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        .about-btn:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            position: relative;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 15px;
+            top: 10px;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        
+        .form-section, .output-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-section h2, .output-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        
+        .conditional-fields {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .output-area {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            min-height: 400px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        
+        .error {
+            background-color: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .copy-btn {
+            background-color: #27ae60;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .copy-btn:hover {
+            background-color: #229954;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px 0;
+            text-align: center;
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .footer-content {
+                padding: 0 10px;
+            }
+            
+            .footer p {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Netplan YAML Generator</h1>
+            <p>Generate netplan YAML configurations for ethernet, bond, and bridge interfaces</p>
+            <div class="version-info">
+                <small>v1.0.0 | Copyright © 2025 Michael Tinsay | <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPLv3 License</a> | <button class="about-btn" onclick="showAbout()">About</button></small>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="form-section">
+                <h2>Configuration</h2>
+                
+                {{if .Error}}
+                <div class="error">
+                    <strong>Error:</strong> {{.Error}}
+                </div>
+                {{end}}
+                
+                <form method="POST" action="/generate">
+                    <div class="form-group">
+                        <label for="interface_type">Interface Type</label>
+                        <select name="interface_type" id="interface_type" onchange="toggleFields()" required>
+                            <option value="ethernet" {{if eq .FormData.InterfaceType "ethernet"}}selected{{end}}>Ethernet</option>
+                            <option value="bond" {{if eq .FormData.InterfaceType "bond"}}selected{{end}}>Bond</option>
+                            <option value="bridge" {{if eq .FormData.InterfaceType "bridge"}}selected{{end}}>Bridge</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="interface_name">Interface Name</label>
+                        <input type="text" name="interface_name" id="interface_name" value="{{.FormData.InterfaceName}}" placeholder="e.g., eth0, bond0, br0" required>
+                        <div class="help-text">Name of the network interface</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="renderer">Renderer</label>
+                        <select name="renderer" id="renderer">
+                            <option value="networkd" {{if eq .FormData.Renderer "networkd"}}selected{{end}}>networkd</option>
+                            <option value="NetworkManager" {{if eq .FormData.Renderer "NetworkManager"}}selected{{end}}>NetworkManager</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" name="use_static" id="use_static" onchange="toggleStaticFields()" {{if .FormData.UseStatic}}checked{{end}}>
+                            <label for="use_static">Use Static IP Configuration</label>
+                        </div>
+                        <div class="help-text">Check to use static IP instead of DHCP</div>
+                    </div>
+                    
+                    <div id="static_fields" class="conditional-fields" style="display: {{if .FormData.UseStatic}}block{{else}}none{{end}};">
+                        <div class="form-group">
+                            <label for="addresses">IP Addresses</label>
+                            <input type="text" name="addresses" id="addresses" value="{{.FormData.Addresses}}" placeholder="192.168.1.100/24, 10.0.0.100/8">
+                            <div class="help-text">Comma-separated IP addresses with CIDR notation</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gateway4">IPv4 Gateway</label>
+                            <input type="text" name="gateway4" id="gateway4" value="{{.FormData.Gateway4}}" placeholder="192.168.1.1">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gateway6">IPv6 Gateway</label>
+                            <input type="text" name="gateway6" id="gateway6" value="{{.FormData.Gateway6}}" placeholder="2001:db8::1">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nameservers">Nameservers</label>
+                            <input type="text" name="nameservers" id="nameservers" value="{{.FormData.Nameservers}}" placeholder="8.8.8.8, 8.8.4.4">
+                            <div class="help-text">Comma-separated DNS server addresses</div>
+                        </div>
+                    </div>
+                    
+                    <div id="dhcp_fields" style="display: {{if .FormData.UseStatic}}none{{else}}block{{end}};">
+                        <div class="form-group">
+                            <label for="dhcp4_overrides">DHCP4 Overrides</label>
+                            <input type="text" name="dhcp4_overrides" id="dhcp4_overrides" value="{{.FormData.DHCP4Overrides}}" placeholder="use-dns=false, use-ntp=false">
+                            <div class="help-text">Comma-separated key=value pairs</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="dhcp6_overrides">DHCP6 Overrides</label>
+                            <input type="text" name="dhcp6_overrides" id="dhcp6_overrides" value="{{.FormData.DHCP6Overrides}}" placeholder="use-dns=false">
+                            <div class="help-text">Comma-separated key=value pairs</div>
+                        </div>
+                    </div>
+                    
+                    <div id="bond_fields" class="conditional-fields" style="display: {{if eq .FormData.InterfaceType "bond"}}block{{else}}none{{end}};">
+                        <div class="form-group">
+                            <label for="bond_interfaces">Bond Interfaces</label>
+                            <input type="text" name="bond_interfaces" id="bond_interfaces" value="{{.FormData.BondInterfaces}}" placeholder="eth0, eth1">
+                            <div class="help-text">Comma-separated list of interfaces to bond</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bond_mode">Bond Mode</label>
+                            <select name="bond_mode" id="bond_mode">
+                                <option value="active-backup" {{if eq .FormData.BondMode "active-backup"}}selected{{end}}>active-backup</option>
+                                <option value="balance-rr" {{if eq .FormData.BondMode "balance-rr"}}selected{{end}}>balance-rr</option>
+                                <option value="balance-xor" {{if eq .FormData.BondMode "balance-xor"}}selected{{end}}>balance-xor</option>
+                                <option value="broadcast" {{if eq .FormData.BondMode "broadcast"}}selected{{end}}>broadcast</option>
+                                <option value="802.3ad" {{if eq .FormData.BondMode "802.3ad"}}selected{{end}}>802.3ad</option>
+                                <option value="balance-tlb" {{if eq .FormData.BondMode "balance-tlb"}}selected{{end}}>balance-tlb</option>
+                                <option value="balance-alb" {{if eq .FormData.BondMode "balance-alb"}}selected{{end}}>balance-alb</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="bridge_fields" class="conditional-fields" style="display: {{if eq .FormData.InterfaceType "bridge"}}block{{else}}none{{end}};">
+                        <div class="form-group">
+                            <label for="bridge_interfaces">Bridge Interfaces</label>
+                            <input type="text" name="bridge_interfaces" id="bridge_interfaces" value="{{.FormData.BridgeInterfaces}}" placeholder="eth0, eth1">
+                            <div class="help-text">Comma-separated list of interfaces to bridge</div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn">Generate Netplan YAML</button>
+                </form>
+            </div>
+            
+            <div class="output-section">
+                <h2>Generated YAML</h2>
+                {{if .Output}}
+                <button class="copy-btn" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+                {{end}}
+                <div class="output-area" id="output">{{if .Output}}{{.Output}}{{else}}# Generated netplan YAML will appear here
+# Fill out the form and click "Generate Netplan YAML"{{end}}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAbout()">&times;</span>
+            <h2>About Netplan Web Generator</h2>
+            <p><strong>Version:</strong> 1.0.0</p>
+            <p><strong>Copyright:</strong> © 2025 Michael Tinsay</p>
+            <p><strong>License:</strong> GNU General Public License v3.0</p>
+            
+            <h3>Description</h3>
+            <p>A standalone Go web application for generating netplan YAML configurations through a user-friendly web interface. Supports ethernet, bond, and bridge interfaces with both DHCP and static IP configuration options.</p>
+            
+            <h3>License Information</h3>
+            <p>This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.</p>
+            
+            <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>
+            
+            <p>You should have received a copy of the GNU General Public License along with this program. If not, see <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">https://www.gnu.org/licenses/gpl-3.0.html</a>.</p>
+            
+            <h3>Features</h3>
+            <ul>
+                <li>Ethernet interface configuration (DHCP/Static)</li>
+                <li>Bond interface configuration (7 bonding modes)</li>
+                <li>Bridge interface configuration</li>
+                <li>DHCP override options</li>
+                <li>IPv4 and IPv6 support</li>
+                <li>Real-time YAML generation</li>
+                <li>Copy to clipboard functionality</li>
+                <li>Responsive web design</li>
+            </ul>
+            
+            <p><strong>Repository:</strong> <a href="https://github.com/mtinsay/netplan-yaml-generator" target="_blank">https://github.com/mtinsay/netplan-yaml-generator</a></p>
+        </div>
+    </div>
+    
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2025 Michael Tinsay. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPLv3</a>.</p>
+            <p>This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions.</p>
+        </div>
+    </footer>
+    
+    <script>
+        function toggleFields() {
+            const interfaceType = document.getElementById('interface_type').value;
+            const bondFields = document.getElementById('bond_fields');
+            const bridgeFields = document.getElementById('bridge_fields');
+            
+            bondFields.style.display = interfaceType === 'bond' ? 'block' : 'none';
+            bridgeFields.style.display = interfaceType === 'bridge' ? 'block' : 'none';
+        }
+        
+        function toggleStaticFields() {
+            const useStatic = document.getElementById('use_static').checked;
+            const staticFields = document.getElementById('static_fields');
+            const dhcpFields = document.getElementById('dhcp_fields');
+            
+            staticFields.style.display = useStatic ? 'block' : 'none';
+            dhcpFields.style.display = useStatic ? 'none' : 'block';
+        }
+        
+        function copyToClipboard() {
+            const output = document.getElementById('output');
+            const text = output.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+        
+        function showAbout() {
+            document.getElementById('aboutModal').style.display = 'block';
+        }
+        
+        function closeAbout() {
+            document.getElementById('aboutModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('aboutModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Initialize form state
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleFields();
+            toggleStaticFields();
+        });
+    </script>
+</body>
+</html>
