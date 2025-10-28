@@ -174,6 +174,51 @@ func TestConfigToYAML(t *testing.T) {
 	}
 }
 
+func TestBondWithEthernetDeclarations(t *testing.T) {
+	config := &NetplanConfig{
+		Network: NetworkConfig{
+			Version:  2,
+			Renderer: "networkd",
+		},
+	}
+
+	formData := FormData{
+		InterfaceName:  "bond0",
+		BondInterfaces: "eth0,eth1",
+		BondMode:       "active-backup",
+		UseStatic:      false,
+		Renderer:       "networkd",
+	}
+
+	result, err := generateBondConfig(config, formData)
+	if err != nil {
+		t.Fatalf("generateBondConfig failed: %v", err)
+	}
+
+	yaml := configToYAML(result)
+
+	// Check that YAML contains ethernet declarations with dhcp4: false
+	expectedStrings := []string{
+		"ethernets:",
+		"eth0:",
+		"dhcp4: false",
+		"eth1:",
+		"bonds:",
+		"bond0:",
+		"interfaces:",
+		"- eth0",
+		"- eth1",
+		"parameters:",
+		"mode: active-backup",
+	}
+
+	for _, expected := range expectedStrings {
+		if !strings.Contains(yaml, expected) {
+			t.Errorf("Expected YAML to contain %q, got:\n%s", expected, yaml)
+		}
+	}
+}
+
 func TestGenerateBondConfig(t *testing.T) {
 	config := &NetplanConfig{
 		Network: NetworkConfig{
@@ -211,6 +256,21 @@ func TestGenerateBondConfig(t *testing.T) {
 	if bond.Parameters.Mode != "active-backup" {
 		t.Errorf("Expected mode active-backup, got %s", bond.Parameters.Mode)
 	}
+
+	// Check that ethernet interfaces are declared with dhcp4: false
+	if len(result.Network.Ethernets) != 2 {
+		t.Errorf("Expected 2 ethernet interfaces, got %d", len(result.Network.Ethernets))
+	}
+
+	for _, ifaceName := range []string{"eth0", "eth1"} {
+		eth, exists := result.Network.Ethernets[ifaceName]
+		if !exists {
+			t.Errorf("Expected ethernet interface %s to exist", ifaceName)
+		}
+		if eth.DHCP4 == nil || *eth.DHCP4 != false {
+			t.Errorf("Expected ethernet interface %s to have dhcp4: false", ifaceName)
+		}
+	}
 }
 
 func TestGenerateBridgeConfig(t *testing.T) {
@@ -244,5 +304,20 @@ func TestGenerateBridgeConfig(t *testing.T) {
 
 	if len(bridge.Interfaces) != 2 || bridge.Interfaces[0] != "eth0" || bridge.Interfaces[1] != "eth1" {
 		t.Errorf("Expected interfaces [eth0, eth1], got %v", bridge.Interfaces)
+	}
+
+	// Check that ethernet interfaces are declared with dhcp4: false
+	if len(result.Network.Ethernets) != 2 {
+		t.Errorf("Expected 2 ethernet interfaces, got %d", len(result.Network.Ethernets))
+	}
+
+	for _, ifaceName := range []string{"eth0", "eth1"} {
+		eth, exists := result.Network.Ethernets[ifaceName]
+		if !exists {
+			t.Errorf("Expected ethernet interface %s to exist", ifaceName)
+		}
+		if eth.DHCP4 == nil || *eth.DHCP4 != false {
+			t.Errorf("Expected ethernet interface %s to have dhcp4: false", ifaceName)
+		}
 	}
 }

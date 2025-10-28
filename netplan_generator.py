@@ -81,6 +81,13 @@ class NetplanGenerator:
                 gateway4: str = None, gateway6: str = None, 
                 nameservers: List[str] = None) -> None:
         """Add bond interface configuration."""
+        # Add ethernet declarations for bond interfaces with dhcp4: false
+        if "ethernets" not in self.config["network"]:
+            self.config["network"]["ethernets"] = {}
+        
+        for interface in interfaces:
+            self.config["network"]["ethernets"][interface] = {"dhcp4": False}
+        
         if "bonds" not in self.config["network"]:
             self.config["network"]["bonds"] = {}
         
@@ -112,6 +119,13 @@ class NetplanGenerator:
                   gateway4: str = None, gateway6: str = None, 
                   nameservers: List[str] = None) -> None:
         """Add bridge interface configuration."""
+        # Add ethernet declarations for bridge interfaces with dhcp4: false
+        if "ethernets" not in self.config["network"]:
+            self.config["network"]["ethernets"] = {}
+        
+        for interface in interfaces:
+            self.config["network"]["ethernets"][interface] = {"dhcp4": False}
+        
         if "bridges" not in self.config["network"]:
             self.config["network"]["bridges"] = {}
         
@@ -204,8 +218,8 @@ Examples:
     
     # Interface options
     parser.add_argument("--ethernet", help="Ethernet interface name")
-    parser.add_argument("--bond", help="Bond interface name")
-    parser.add_argument("--bridge", help="Bridge interface name")
+    parser.add_argument("--bond", help="Bond interface name (automatically creates ethernet declarations)")
+    parser.add_argument("--bridge", help="Bridge interface name (automatically creates ethernet declarations)")
     
     # Configuration options
     parser.add_argument("--static", action="store_true",
@@ -218,10 +232,10 @@ Examples:
     parser.add_argument("--dhcp6-overrides", help="DHCP6 overrides (key=value,key=value)")
     
     # Bond/Bridge specific options
-    parser.add_argument("--bond-interfaces", help="Comma-separated interfaces for bond")
+    parser.add_argument("--bond-interfaces", help="Comma-separated interfaces for bond (will be configured with dhcp4: false)")
     parser.add_argument("--bond-mode", default="active-backup",
                        help="Bond mode (default: active-backup)")
-    parser.add_argument("--bridge-interfaces", help="Comma-separated interfaces for bridge")
+    parser.add_argument("--bridge-interfaces", help="Comma-separated interfaces for bridge (will be configured with dhcp4: false)")
     
     args = parser.parse_args()
     

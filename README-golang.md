@@ -147,6 +147,11 @@ Create high-availability network bonds with:
 network:
   version: 2
   renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: false
+    eth1:
+      dhcp4: false
   bonds:
     bond0:
       interfaces:
@@ -169,6 +174,11 @@ Set up virtual bridges for:
 network:
   version: 2
   renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: false
+    eth1:
+      dhcp4: false
   bridges:
     br0:
       interfaces:

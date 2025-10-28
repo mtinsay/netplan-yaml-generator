@@ -56,5 +56,45 @@ def test_basic_functionality():
     
     print("All tests completed successfully!")
 
+def test_bond_ethernet_declarations():
+    """Test that bond interfaces automatically create ethernet declarations"""
+    print("\n=== Testing Bond Ethernet Declarations ===")
+    generator = NetplanGenerator()
+    generator.add_bond("bond0", ["eth0", "eth1"], mode="active-backup")
+    
+    config = generator.config
+    
+    # Verify ethernet declarations exist
+    assert "ethernets" in config["network"], "Ethernets section should exist"
+    assert "eth0" in config["network"]["ethernets"], "eth0 should be declared"
+    assert "eth1" in config["network"]["ethernets"], "eth1 should be declared"
+    
+    # Verify dhcp4 is false for bond interfaces
+    assert config["network"]["ethernets"]["eth0"]["dhcp4"] is False, "eth0 should have dhcp4: false"
+    assert config["network"]["ethernets"]["eth1"]["dhcp4"] is False, "eth1 should have dhcp4: false"
+    
+    print("✓ Bond ethernet declarations test passed")
+
+def test_bridge_ethernet_declarations():
+    """Test that bridge interfaces automatically create ethernet declarations"""
+    print("=== Testing Bridge Ethernet Declarations ===")
+    generator = NetplanGenerator()
+    generator.add_bridge("br0", ["eth0", "eth1"])
+    
+    config = generator.config
+    
+    # Verify ethernet declarations exist
+    assert "ethernets" in config["network"], "Ethernets section should exist"
+    assert "eth0" in config["network"]["ethernets"], "eth0 should be declared"
+    assert "eth1" in config["network"]["ethernets"], "eth1 should be declared"
+    
+    # Verify dhcp4 is false for bridge interfaces
+    assert config["network"]["ethernets"]["eth0"]["dhcp4"] is False, "eth0 should have dhcp4: false"
+    assert config["network"]["ethernets"]["eth1"]["dhcp4"] is False, "eth1 should have dhcp4: false"
+    
+    print("✓ Bridge ethernet declarations test passed")
+
 if __name__ == "__main__":
     test_basic_functionality()
+    test_bond_ethernet_declarations()
+    test_bridge_ethernet_declarations()

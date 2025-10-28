@@ -380,7 +380,7 @@
                         <div class="form-group">
                             <label for="bond_interfaces">Bond Interfaces</label>
                             <input type="text" name="bond_interfaces" id="bond_interfaces" value="{{.FormData.BondInterfaces}}" placeholder="eth0, eth1">
-                            <div class="help-text">Comma-separated list of interfaces to bond</div>
+                            <div class="help-text">Comma-separated list of interfaces to bond. These interfaces will automatically be configured with dhcp4: false.</div>
                         </div>
                         
                         <div class="form-group">
@@ -401,7 +401,7 @@
                         <div class="form-group">
                             <label for="bridge_interfaces">Bridge Interfaces</label>
                             <input type="text" name="bridge_interfaces" id="bridge_interfaces" value="{{.FormData.BridgeInterfaces}}" placeholder="eth0, eth1">
-                            <div class="help-text">Comma-separated list of interfaces to bridge</div>
+                            <div class="help-text">Comma-separated list of interfaces to bridge. These interfaces will automatically be configured with dhcp4: false.</div>
                         </div>
                     </div>
                     
@@ -449,7 +449,11 @@
                 <li>Real-time YAML generation</li>
                 <li>Copy to clipboard functionality</li>
                 <li>Responsive web design</li>
+                <li>Automatic ethernet declarations for bond/bridge interfaces</li>
             </ul>
+            
+            <h3>Important Notes</h3>
+            <p><strong>Bond and Bridge Interfaces:</strong> When creating bonds or bridges, the underlying physical interfaces are automatically declared in the ethernets section with <code>dhcp4: false</code> to prevent IP address conflicts.</p>
             
             <p><strong>Repository:</strong> <a href="https://github.com/mtinsay/netplan-yaml-generator" target="_blank">https://github.com/mtinsay/netplan-yaml-generator</a></p>
         </div>

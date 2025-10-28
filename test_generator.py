@@ -27,10 +27,9 @@ def test_dhcp_ethernet():
     print("Testing DHCP ethernet...")
     generator = NetplanGenerator()
     
-    eth_config = EthernetConfig(name="eth0", dhcp4=True)
-    generator.add_ethernet(eth_config)
+    generator.add_ethernet("eth0", dhcp4=True)
     
-    config = generator.generate_config()
+    config = generator.config
     
     # Validate structure
     assert config["network"]["version"] == 2
@@ -46,16 +45,15 @@ def test_static_ethernet():
     print("Testing static ethernet...")
     generator = NetplanGenerator()
     
-    eth_config = EthernetConfig(
-        name="eth0",
+    generator.add_ethernet(
+        "eth0",
         dhcp4=False,
         addresses=["192.168.1.100/24"],
         gateway4="192.168.1.1",
-        nameservers={"addresses": ["8.8.8.8"]}
+        nameservers=["8.8.8.8"]
     )
-    generator.add_ethernet(eth_config)
     
-    config = generator.generate_config()
+    config = generator.config
     eth_config_dict = config["network"]["ethernets"]["eth0"]
     
     assert "dhcp4" not in eth_config_dict or eth_config_dict["dhcp4"] is False
@@ -70,20 +68,26 @@ def test_bond():
     print("Testing bond...")
     generator = NetplanGenerator()
     
-    bond_config = BondConfig(
-        name="bond0",
+    generator.add_bond(
+        "bond0",
         interfaces=["eth0", "eth1"],
         mode="active-backup",
         dhcp4=True
     )
-    generator.add_bond(bond_config)
     
-    config = generator.generate_config()
+    config = generator.config
     bond_config_dict = config["network"]["bonds"]["bond0"]
     
     assert bond_config_dict["dhcp4"] is True
     assert bond_config_dict["interfaces"] == ["eth0", "eth1"]
     assert bond_config_dict["parameters"]["mode"] == "active-backup"
+    
+    # Test that ethernet declarations are created
+    assert "ethernets" in config["network"]
+    assert "eth0" in config["network"]["ethernets"]
+    assert "eth1" in config["network"]["ethernets"]
+    assert config["network"]["ethernets"]["eth0"]["dhcp4"] is False
+    assert config["network"]["ethernets"]["eth1"]["dhcp4"] is False
     
     print("✓ Bond test passed")
 
@@ -92,18 +96,24 @@ def test_bridge():
     print("Testing bridge...")
     generator = NetplanGenerator()
     
-    bridge_config = BridgeConfig(
-        name="br0",
-        interfaces=["eth0"],
+    generator.add_bridge(
+        "br0",
+        interfaces=["eth0", "eth1"],
         dhcp4=True
     )
-    generator.add_bridge(bridge_config)
     
-    config = generator.generate_config()
+    config = generator.config
     bridge_config_dict = config["network"]["bridges"]["br0"]
     
     assert bridge_config_dict["dhcp4"] is True
-    assert bridge_config_dict["interfaces"] == ["eth0"]
+    assert bridge_config_dict["interfaces"] == ["eth0", "eth1"]
+    
+    # Test that ethernet declarations are created
+    assert "ethernets" in config["network"]
+    assert "eth0" in config["network"]["ethernets"]
+    assert "eth1" in config["network"]["ethernets"]
+    assert config["network"]["ethernets"]["eth0"]["dhcp4"] is False
+    assert config["network"]["ethernets"]["eth1"]["dhcp4"] is False
     
     print("✓ Bridge test passed")
 
@@ -112,19 +122,19 @@ def test_yaml_output():
     print("Testing YAML output...")
     generator = NetplanGenerator()
     
-    eth_config = EthernetConfig(name="eth0", dhcp4=True)
-    generator.add_ethernet(eth_config)
+    generator.add_ethernet("eth0", dhcp4=True)
     
     yaml_output = generator.to_yaml()
     
-    # Validate that it's valid YAML
-    try:
-        parsed = yaml.safe_load(yaml_output)
-        assert parsed["network"]["version"] == 2
-        print("✓ YAML output test passed")
-    except yaml.YAMLError as e:
-        print(f"✗ YAML output test failed: {e}")
-        sys.exit(1)
+    # Validate that it contains expected content
+    assert "network:" in yaml_output
+    assert "version: 2" in yaml_output
+    assert "renderer: networkd" in yaml_output
+    assert "ethernets:" in yaml_output
+    assert "eth0:" in yaml_output
+    assert "dhcp4: true" in yaml_output
+    
+    print("✓ YAML output test passed")
 
 def test_complex_config():
     """Test complex configuration with multiple interface types"""
@@ -132,33 +142,38 @@ def test_complex_config():
     generator = NetplanGenerator()
     
     # Add ethernet
-    eth_config = EthernetConfig(name="eth0", dhcp4=True)
-    generator.add_ethernet(eth_config)
+    generator.add_ethernet("eth0", dhcp4=True)
     
     # Add bond
-    bond_config = BondConfig(
-        name="bond0",
+    generator.add_bond(
+        "bond0",
         interfaces=["eth1", "eth2"],
         mode="active-backup",
         dhcp4=False,
         addresses=["10.0.1.100/24"]
     )
-    generator.add_bond(bond_config)
     
     # Add bridge
-    bridge_config = BridgeConfig(
-        name="br0",
+    generator.add_bridge(
+        "br0",
         interfaces=["eth3"],
         dhcp4=True
     )
-    generator.add_bridge(bridge_config)
     
-    config = generator.generate_config()
+    config = generator.config
     
     # Validate all sections exist
     assert "ethernets" in config["network"]
     assert "bonds" in config["network"]
     assert "bridges" in config["network"]
+    
+    # Validate ethernet declarations for bond and bridge interfaces
+    assert "eth1" in config["network"]["ethernets"]  # Bond interface
+    assert "eth2" in config["network"]["ethernets"]  # Bond interface
+    assert "eth3" in config["network"]["ethernets"]  # Bridge interface
+    assert config["network"]["ethernets"]["eth1"]["dhcp4"] is False
+    assert config["network"]["ethernets"]["eth2"]["dhcp4"] is False
+    assert config["network"]["ethernets"]["eth3"]["dhcp4"] is False
     
     print("✓ Complex configuration test passed")
 

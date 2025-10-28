@@ -284,10 +284,25 @@ func generateBondConfig(config *NetplanConfig, formData FormData) (*NetplanConfi
 		return nil, fmt.Errorf("bond interfaces are required")
 	}
 	
+	bondInterfaces := parseCommaSeparated(formData.BondInterfaces)
+	
+	// Initialize ethernets map if it doesn't exist
+	if config.Network.Ethernets == nil {
+		config.Network.Ethernets = make(map[string]EthernetConfig)
+	}
+	
+	// Add ethernet declarations for bond interfaces with dhcp4: false
+	for _, iface := range bondInterfaces {
+		dhcp4 := false
+		config.Network.Ethernets[iface] = EthernetConfig{
+			DHCP4: &dhcp4,
+		}
+	}
+	
 	config.Network.Bonds = make(map[string]BondConfig)
 	
 	bondConfig := BondConfig{
-		Interfaces: parseCommaSeparated(formData.BondInterfaces),
+		Interfaces: bondInterfaces,
 		Parameters: BondParameters{Mode: formData.BondMode},
 	}
 	
@@ -325,10 +340,25 @@ func generateBridgeConfig(config *NetplanConfig, formData FormData) (*NetplanCon
 		return nil, fmt.Errorf("bridge interfaces are required")
 	}
 	
+	bridgeInterfaces := parseCommaSeparated(formData.BridgeInterfaces)
+	
+	// Initialize ethernets map if it doesn't exist
+	if config.Network.Ethernets == nil {
+		config.Network.Ethernets = make(map[string]EthernetConfig)
+	}
+	
+	// Add ethernet declarations for bridge interfaces with dhcp4: false
+	for _, iface := range bridgeInterfaces {
+		dhcp4 := false
+		config.Network.Ethernets[iface] = EthernetConfig{
+			DHCP4: &dhcp4,
+		}
+	}
+	
 	config.Network.Bridges = make(map[string]BridgeConfig)
 	
 	bridgeConfig := BridgeConfig{
-		Interfaces: parseCommaSeparated(formData.BridgeInterfaces),
+		Interfaces: bridgeInterfaces,
 	}
 	
 	// Set DHCP or static configuration

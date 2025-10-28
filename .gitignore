@@ -133,6 +133,7 @@ dmypy.json
 *.yml
 !examples/*.yaml
 !examples/*.yml
+!docker-compose*.yml
 
 # Go binaries
 netplan_generator

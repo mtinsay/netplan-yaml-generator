@@ -112,6 +112,12 @@ network:
   ethernets:
     eth0:
       dhcp4: true
+    eth1:
+      dhcp4: false
+    eth2:
+      dhcp4: false
+    eth3:
+      dhcp4: false
   bonds:
     bond0:
       interfaces: [eth1, eth2]
