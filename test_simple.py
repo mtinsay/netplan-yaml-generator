@@ -94,7 +94,33 @@ def test_bridge_ethernet_declarations():
     
     print("✓ Bridge ethernet declarations test passed")
 
+def test_static_without_addresses():
+    """Test that static configuration without addresses sets dhcp4: false"""
+    print("\n=== Testing Static Without Addresses ===")
+    
+    # Test ethernet
+    generator = NetplanGenerator()
+    generator.add_ethernet("eth0", dhcp4=False)
+    yaml_output = generator.to_yaml()
+    assert "dhcp4: false" in yaml_output, "Ethernet should have dhcp4: false when static without addresses"
+    print("✓ Ethernet static without addresses test passed")
+    
+    # Test bond
+    generator = NetplanGenerator()
+    generator.add_bond("bond0", ["eth0", "eth1"], dhcp4=False)
+    yaml_output = generator.to_yaml()
+    assert "dhcp4: false" in yaml_output, "Bond should have dhcp4: false when static without addresses"
+    print("✓ Bond static without addresses test passed")
+    
+    # Test bridge
+    generator = NetplanGenerator()
+    generator.add_bridge("br0", ["eth0", "eth1"], dhcp4=False)
+    yaml_output = generator.to_yaml()
+    assert "dhcp4: false" in yaml_output, "Bridge should have dhcp4: false when static without addresses"
+    print("✓ Bridge static without addresses test passed")
+
 if __name__ == "__main__":
     test_basic_functionality()
     test_bond_ethernet_declarations()
     test_bridge_ethernet_declarations()
+    test_static_without_addresses()

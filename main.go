@@ -246,6 +246,10 @@ func generateEthernetConfig(config *NetplanConfig, formData FormData) (*NetplanC
 	if !formData.UseStatic {
 		dhcp4 := true
 		ethConfig.DHCP4 = &dhcp4
+	} else {
+		// When static is selected, explicitly set dhcp4: false
+		dhcp4 := false
+		ethConfig.DHCP4 = &dhcp4
 	}
 	
 	// Parse addresses
@@ -310,6 +314,10 @@ func generateBondConfig(config *NetplanConfig, formData FormData) (*NetplanConfi
 	if !formData.UseStatic {
 		dhcp4 := true
 		bondConfig.DHCP4 = &dhcp4
+	} else {
+		// When static is selected, explicitly set dhcp4: false
+		dhcp4 := false
+		bondConfig.DHCP4 = &dhcp4
 	}
 	
 	// Parse addresses
@@ -364,6 +372,10 @@ func generateBridgeConfig(config *NetplanConfig, formData FormData) (*NetplanCon
 	// Set DHCP or static configuration
 	if !formData.UseStatic {
 		dhcp4 := true
+		bridgeConfig.DHCP4 = &dhcp4
+	} else {
+		// When static is selected, explicitly set dhcp4: false
+		dhcp4 := false
 		bridgeConfig.DHCP4 = &dhcp4
 	}
 	

@@ -112,9 +112,47 @@ def test_mixed_configuration():
     
     print("✓ Mixed configuration test passed\n")
 
+def test_static_without_addresses():
+    """Test that --static without --addresses creates dhcp4: false"""
+    print("Testing static configuration without addresses...")
+    
+    # Test ethernet
+    generator = NetplanGenerator()
+    generator.add_ethernet("eth0", dhcp4=False)  # Simulates --static without --addresses
+    
+    yaml_output = generator.to_yaml()
+    print("Ethernet static without addresses:")
+    print(yaml_output)
+    
+    assert "dhcp4: false" in yaml_output or "dhcp4: no" in yaml_output
+    print("✓ Ethernet static without addresses test passed\n")
+    
+    # Test bond
+    generator = NetplanGenerator()
+    generator.add_bond("bond0", ["eth0", "eth1"], dhcp4=False)  # Simulates --static without --addresses
+    
+    yaml_output = generator.to_yaml()
+    print("Bond static without addresses:")
+    print(yaml_output)
+    
+    assert "dhcp4: false" in yaml_output or "dhcp4: no" in yaml_output
+    print("✓ Bond static without addresses test passed\n")
+    
+    # Test bridge
+    generator = NetplanGenerator()
+    generator.add_bridge("br0", ["eth0", "eth1"], dhcp4=False)  # Simulates --static without --addresses
+    
+    yaml_output = generator.to_yaml()
+    print("Bridge static without addresses:")
+    print(yaml_output)
+    
+    assert "dhcp4: false" in yaml_output or "dhcp4: no" in yaml_output
+    print("✓ Bridge static without addresses test passed\n")
+
 if __name__ == "__main__":
     print("Testing Python netplan generator ethernet declarations\n")
     test_bond_ethernet_declarations()
     test_bridge_ethernet_declarations()
     test_mixed_configuration()
+    test_static_without_addresses()
     print("🎉 All tests passed! Python program correctly adds ethernet declarations.")

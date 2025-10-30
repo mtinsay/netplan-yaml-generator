@@ -219,6 +219,34 @@ func TestBondWithEthernetDeclarations(t *testing.T) {
 	}
 }
 
+func TestStaticWithoutAddresses(t *testing.T) {
+	config := &NetplanConfig{
+		Network: NetworkConfig{
+			Version:  2,
+			Renderer: "networkd",
+		},
+	}
+
+	// Test ethernet static without addresses
+	formData := FormData{
+		InterfaceName: "eth0",
+		UseStatic:     true,
+		Renderer:      "networkd",
+	}
+
+	result, err := generateEthernetConfig(config, formData)
+	if err != nil {
+		t.Fatalf("generateEthernetConfig failed: %v", err)
+	}
+
+	yaml := configToYAML(result)
+
+	// Should contain dhcp4: false when static is used without addresses
+	if !strings.Contains(yaml, "dhcp4: false") {
+		t.Errorf("Expected YAML to contain 'dhcp4: false' for static without addresses, got:\n%s", yaml)
+	}
+}
+
 func TestGenerateBondConfig(t *testing.T) {
 	config := &NetplanConfig{
 		Network: NetworkConfig{

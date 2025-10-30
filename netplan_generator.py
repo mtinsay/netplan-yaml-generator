@@ -53,10 +53,10 @@ class NetplanGenerator:
         
         interface_config = {}
         
-        if dhcp4:
-            interface_config["dhcp4"] = True
+        # Always set dhcp4 explicitly
+        interface_config["dhcp4"] = dhcp4
         if dhcp6:
-            interface_config["dhcp6"] = True
+            interface_config["dhcp6"] = dhcp6
             
         if addresses:
             interface_config["addresses"] = addresses
@@ -96,10 +96,10 @@ class NetplanGenerator:
             "parameters": {"mode": mode}
         }
         
-        if dhcp4:
-            interface_config["dhcp4"] = True
+        # Always set dhcp4 explicitly
+        interface_config["dhcp4"] = dhcp4
         if dhcp6:
-            interface_config["dhcp6"] = True
+            interface_config["dhcp6"] = dhcp6
             
         if addresses:
             interface_config["addresses"] = addresses
@@ -133,10 +133,10 @@ class NetplanGenerator:
             "interfaces": interfaces
         }
         
-        if dhcp4:
-            interface_config["dhcp4"] = True
+        # Always set dhcp4 explicitly
+        interface_config["dhcp4"] = dhcp4
         if dhcp6:
-            interface_config["dhcp6"] = True
+            interface_config["dhcp6"] = dhcp6
             
         if addresses:
             interface_config["addresses"] = addresses
