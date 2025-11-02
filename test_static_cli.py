@@ -100,11 +100,54 @@ def test_cli_static_without_addresses():
     
     return True
 
-if __name__ == "__main__":
-    print("Testing CLI --static without --addresses behavior\n")
+def test_cli_use_nm():
+    """Test CLI --use-nm parameter"""
+    print("Testing CLI --use-nm parameter...")
     
-    if test_cli_static_without_addresses():
-        print("\n🎉 All CLI tests passed! --static without --addresses correctly sets dhcp4: false")
+    try:
+        result = subprocess.run([
+            sys.executable, "netplan_generator.py", 
+            "--use-nm"
+        ], capture_output=True, text=True, cwd=os.getcwd())
+        
+        if result.returncode == 0:
+            output = result.stdout
+            print("NetworkManager configuration output:")
+            print(output)
+            
+            # Verify basic structure
+            if ("version: 2" in output and 
+                "renderer: NetworkManager" in output and
+                "nmcli" in output and
+                "nm-connection-editor" in output):
+                print("✓ NetworkManager CLI test passed")
+                return True
+            else:
+                print("❌ NetworkManager CLI test failed - missing expected content")
+                return False
+        else:
+            print(f"❌ NetworkManager CLI test failed with error: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ NetworkManager CLI test failed with exception: {e}")
+        return False
+
+if __name__ == "__main__":
+    print("Testing CLI behavior\n")
+    
+    success = True
+    
+    print("1. Testing --static without --addresses:")
+    if not test_cli_static_without_addresses():
+        success = False
+    
+    print("\n2. Testing --use-nm parameter:")
+    if not test_cli_use_nm():
+        success = False
+    
+    if success:
+        print("\n🎉 All CLI tests passed!")
     else:
         print("\n❌ Some CLI tests failed!")
         sys.exit(1)

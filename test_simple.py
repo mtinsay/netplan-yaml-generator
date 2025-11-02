@@ -119,8 +119,29 @@ def test_static_without_addresses():
     assert "dhcp4: false" in yaml_output, "Bridge should have dhcp4: false when static without addresses"
     print("✓ Bridge static without addresses test passed")
 
+def test_networkmanager_config():
+    """Test NetworkManager minimal configuration generation"""
+    print("\n=== Testing NetworkManager Configuration ===")
+    
+    from netplan_generator import generate_networkmanager_config
+    
+    yaml_output = generate_networkmanager_config()
+    
+    # Verify basic structure
+    assert "network:" in yaml_output, "Should contain network section"
+    assert "version: 2" in yaml_output, "Should contain version 2"
+    assert "renderer: NetworkManager" in yaml_output, "Should use NetworkManager renderer"
+    
+    # Verify comments are present
+    assert "nmcli" in yaml_output, "Should contain nmcli information"
+    assert "nm-connection-editor" in yaml_output, "Should contain GUI tool information"
+    assert "NetworkManager command-line interface" in yaml_output, "Should contain CLI description"
+    
+    print("✓ NetworkManager configuration test passed")
+
 if __name__ == "__main__":
     test_basic_functionality()
     test_bond_ethernet_declarations()
     test_bridge_ethernet_declarations()
     test_static_without_addresses()
+    test_networkmanager_config()

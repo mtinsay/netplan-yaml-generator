@@ -195,5 +195,27 @@ def main():
         print(f"\n✗ Test failed: {e}")
         sys.exit(1)
 
+def test_networkmanager_generation():
+    """Test NetworkManager configuration generation"""
+    print("Testing NetworkManager configuration generation...")
+    
+    from netplan_generator import generate_networkmanager_config
+    
+    yaml_output = generate_networkmanager_config()
+    
+    # Verify structure
+    assert "network:" in yaml_output
+    assert "version: 2" in yaml_output
+    assert "renderer: NetworkManager" in yaml_output
+    
+    # Verify helpful comments
+    assert "nmcli" in yaml_output
+    assert "nm-connection-editor" in yaml_output
+    assert "NetworkManager command-line interface" in yaml_output
+    assert "man nmcli" in yaml_output
+    
+    print("✓ NetworkManager generation test passed")
+
 if __name__ == "__main__":
     main()
+    test_networkmanager_generation()

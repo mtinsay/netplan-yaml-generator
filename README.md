@@ -53,6 +53,11 @@ python netplan_generator.py --ethernet eth0 --dhcp4-overrides use-dns=false,use-
 python netplan_generator.py --bond bond0 --bond-interfaces eth0,eth1 --bond-mode 802.3ad --static --addresses 10.0.1.100/24 --gateway4 10.0.1.1
 ```
 
+#### NetworkManager Configuration
+```bash
+python netplan_generator.py --use-nm
+```
+
 #### Output to File
 ```bash
 python netplan_generator.py --ethernet eth0 --output /etc/netplan/01-config.yaml
@@ -63,6 +68,7 @@ python netplan_generator.py --ethernet eth0 --output /etc/netplan/01-config.yaml
 ### General Options
 - `--output, -o`: Output file path (default: stdout)
 - `--renderer`: Network renderer (networkd or NetworkManager, default: networkd)
+- `--use-nm`: Generate minimal NetworkManager configuration (ignores all other options)
 
 ### Interface Options
 - `--ethernet`: Ethernet interface name

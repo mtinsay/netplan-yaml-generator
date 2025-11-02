@@ -163,6 +163,39 @@ def parse_list(value: str) -> List[str]:
     return [item.strip() for item in value.split(",")]
 
 
+def generate_networkmanager_config() -> str:
+    """Generate minimal NetworkManager configuration with comments."""
+    yaml_content = """# Netplan configuration for NetworkManager
+# This configuration sets NetworkManager as the network renderer
+# Use NetworkManager tools to configure network interfaces:
+#
+# GUI Tools:
+#   - nm-connection-editor (graphical network configuration)
+#   - GNOME Settings -> Network (for GNOME desktop)
+#   - KDE System Settings -> Network (for KDE desktop)
+#
+# Command Line Tools:
+#   - nmcli: NetworkManager command-line interface
+#     Examples:
+#       nmcli device status                    # Show device status
+#       nmcli connection show                  # List connections
+#       nmcli connection add type ethernet ... # Add ethernet connection
+#       nmcli connection add type bond ...     # Add bond connection
+#       nmcli connection add type bridge ...   # Add bridge connection
+#
+#   - nmtui: NetworkManager text user interface (interactive)
+#
+# For more information:
+#   - man nmcli
+#   - man nmcli-examples
+#   - https://networkmanager.dev/
+
+network:
+  version: 2
+  renderer: NetworkManager
+"""
+    return yaml_content
+
 def parse_overrides(value: str) -> Dict[str, Any]:
     """Parse key=value pairs into a dictionary."""
     if not value:
@@ -205,6 +238,9 @@ Examples:
   # Bridge interface
   python netplan_generator.py --bridge br0 --bridge-interfaces eth0,eth1
 
+  # NetworkManager minimal configuration
+  python netplan_generator.py --use-nm
+
   # Output to file
   python netplan_generator.py --ethernet eth0 --output config.yaml
         """
@@ -215,6 +251,8 @@ Examples:
     parser.add_argument("--renderer", default="networkd", 
                        choices=["networkd", "NetworkManager"],
                        help="Network renderer (default: networkd)")
+    parser.add_argument("--use-nm", action="store_true",
+                       help="Generate minimal NetworkManager configuration (ignores all other options)")
     
     # Interface options
     parser.add_argument("--ethernet", help="Ethernet interface name")
@@ -239,11 +277,15 @@ Examples:
     
     args = parser.parse_args()
     
-    # Validate arguments
-    if not any([args.ethernet, args.bond, args.bridge]):
-        parser.error("At least one interface type must be specified")
-    
-    generator = NetplanGenerator(args.renderer)
+    # Handle --use-nm option (ignores all other parameters)
+    if args.use_nm:
+        yaml_output = generate_networkmanager_config()
+    else:
+        # Validate arguments for normal operation
+        if not any([args.ethernet, args.bond, args.bridge]):
+            parser.error("At least one interface type must be specified")
+        
+        generator = NetplanGenerator(args.renderer)
     
     # Process ethernet interface
     if args.ethernet:
@@ -304,9 +346,9 @@ Examples:
             gateway6=args.gateway6,
             nameservers=nameservers
         )
-    
-    # Generate YAML output
-    yaml_output = generator.to_yaml()
+        
+        # Generate YAML output
+        yaml_output = generator.to_yaml()
     
     # Output to file or stdout
     if args.output:
