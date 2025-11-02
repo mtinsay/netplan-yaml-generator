@@ -24,6 +24,7 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -89,21 +90,26 @@ type NameserversConfig struct {
 	Addresses []string `yaml:"addresses"`
 }
 
+// InterfaceDefinition represents a single interface configuration
+type InterfaceDefinition struct {
+	Type             string `json:"type"`
+	Name             string `json:"name"`
+	UseStatic        bool   `json:"useStatic"`
+	Addresses        string `json:"addresses"`
+	Gateway4         string `json:"gateway4"`
+	Gateway6         string `json:"gateway6"`
+	Nameservers      string `json:"nameservers"`
+	DHCP4Overrides   string `json:"dhcp4Overrides"`
+	DHCP6Overrides   string `json:"dhcp6Overrides"`
+	BondInterfaces   string `json:"bondInterfaces"`
+	BondMode         string `json:"bondMode"`
+	BridgeInterfaces string `json:"bridgeInterfaces"`
+}
+
 // FormData represents the web form input
 type FormData struct {
-	InterfaceType    string
-	InterfaceName    string
-	UseStatic        bool
-	Addresses        string
-	Gateway4         string
-	Gateway6         string
-	Nameservers      string
-	DHCP4Overrides   string
-	DHCP6Overrides   string
-	BondInterfaces   string
-	BondMode         string
-	BridgeInterfaces string
-	Renderer         string
+	Interfaces []InterfaceDefinition `json:"interfaces"`
+	Renderer   string                `json:"renderer"`
 }
 
 // PageData represents data passed to the template
@@ -167,34 +173,61 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Parse form data
-	formData := FormData{
-		InterfaceType:    r.FormValue("interface_type"),
-		InterfaceName:    r.FormValue("interface_name"),
-		UseStatic:        r.FormValue("use_static") == "on",
-		Addresses:        r.FormValue("addresses"),
-		Gateway4:         r.FormValue("gateway4"),
-		Gateway6:         r.FormValue("gateway6"),
-		Nameservers:      r.FormValue("nameservers"),
-		DHCP4Overrides:   r.FormValue("dhcp4_overrides"),
-		DHCP6Overrides:   r.FormValue("dhcp6_overrides"),
-		BondInterfaces:   r.FormValue("bond_interfaces"),
-		BondMode:         r.FormValue("bond_mode"),
-		BridgeInterfaces: r.FormValue("bridge_interfaces"),
-		Renderer:         r.FormValue("renderer"),
+	// Check if this is JSON data (for multiple interfaces) or form data (legacy single interface)
+	contentType := r.Header.Get("Content-Type")
+	
+	var formData FormData
+	var err error
+	
+	if strings.Contains(contentType, "application/json") {
+		// Parse JSON data for multiple interfaces
+		err = json.NewDecoder(r.Body).Decode(&formData)
+		if err != nil {
+			renderPage(w, formData, "", "Invalid JSON data: "+err.Error())
+			return
+		}
+	} else {
+		// Parse form data for single interface (legacy support)
+		formData = FormData{
+			Interfaces: []InterfaceDefinition{{
+				Type:             r.FormValue("interface_type"),
+				Name:             r.FormValue("interface_name"),
+				UseStatic:        r.FormValue("use_static") == "on",
+				Addresses:        r.FormValue("addresses"),
+				Gateway4:         r.FormValue("gateway4"),
+				Gateway6:         r.FormValue("gateway6"),
+				Nameservers:      r.FormValue("nameservers"),
+				DHCP4Overrides:   r.FormValue("dhcp4_overrides"),
+				DHCP6Overrides:   r.FormValue("dhcp6_overrides"),
+				BondInterfaces:   r.FormValue("bond_interfaces"),
+				BondMode:         r.FormValue("bond_mode"),
+				BridgeInterfaces: r.FormValue("bridge_interfaces"),
+			}},
+			Renderer: r.FormValue("renderer"),
+		}
 	}
 	
 	// Generate netplan configuration
 	config, err := generateNetplanConfig(formData)
 	if err != nil {
-		renderPage(w, formData, "", err.Error())
+		if strings.Contains(contentType, "application/json") {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		} else {
+			renderPage(w, formData, "", err.Error())
+		}
 		return
 	}
 	
 	// Convert to YAML
 	yamlOutput := configToYAML(config)
 	
-	renderPage(w, formData, yamlOutput, "")
+	if strings.Contains(contentType, "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"yaml": yamlOutput})
+	} else {
+		renderPage(w, formData, yamlOutput, "")
+	}
 }
 
 func renderPage(w http.ResponseWriter, formData FormData, output, errorMsg string) {
@@ -214,8 +247,8 @@ func renderPage(w http.ResponseWriter, formData FormData, output, errorMsg strin
 }
 
 func generateNetplanConfig(formData FormData) (*NetplanConfig, error) {
-	if formData.InterfaceName == "" {
-		return nil, fmt.Errorf("interface name is required")
+	if len(formData.Interfaces) == 0 {
+		return nil, fmt.Errorf("at least one interface is required")
 	}
 	
 	config := &NetplanConfig{
@@ -225,19 +258,260 @@ func generateNetplanConfig(formData FormData) (*NetplanConfig, error) {
 		},
 	}
 	
-	switch formData.InterfaceType {
-	case "ethernet":
-		return generateEthernetConfig(config, formData)
-	case "bond":
-		return generateBondConfig(config, formData)
-	case "bridge":
-		return generateBridgeConfig(config, formData)
-	default:
-		return nil, fmt.Errorf("invalid interface type: %s", formData.InterfaceType)
+	// Process each interface
+	for _, iface := range formData.Interfaces {
+		if iface.Name == "" {
+			return nil, fmt.Errorf("interface name is required")
+		}
+		
+		switch iface.Type {
+		case "ethernet":
+			err := addEthernetToConfig(config, iface)
+			if err != nil {
+				return nil, err
+			}
+		case "bond":
+			err := addBondToConfig(config, iface)
+			if err != nil {
+				return nil, err
+			}
+		case "bridge":
+			err := addBridgeToConfig(config, iface)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("invalid interface type: %s", iface.Type)
+		}
 	}
+	
+	return config, nil
+}
+
+func addEthernetToConfig(config *NetplanConfig, iface InterfaceDefinition) error {
+	if config.Network.Ethernets == nil {
+		config.Network.Ethernets = make(map[string]EthernetConfig)
+	}
+	
+	ethConfig := EthernetConfig{}
+	
+	// Set DHCP or static configuration
+	if !iface.UseStatic {
+		dhcp4 := true
+		ethConfig.DHCP4 = &dhcp4
+	} else {
+		// When static is selected, explicitly set dhcp4: false
+		dhcp4 := false
+		ethConfig.DHCP4 = &dhcp4
+	}
+	
+	// Parse addresses
+	if iface.Addresses != "" {
+		ethConfig.Addresses = parseCommaSeparated(iface.Addresses)
+	}
+	
+	// Set gateways
+	if iface.Gateway4 != "" {
+		ethConfig.Gateway4 = iface.Gateway4
+	}
+	if iface.Gateway6 != "" {
+		ethConfig.Gateway6 = iface.Gateway6
+	}
+	
+	// Parse nameservers
+	if iface.Nameservers != "" {
+		nameservers := parseCommaSeparated(iface.Nameservers)
+		ethConfig.Nameservers = &NameserversConfig{Addresses: nameservers}
+	}
+	
+	// Parse DHCP overrides
+	if iface.DHCP4Overrides != "" {
+		ethConfig.DHCP4Overrides = parseKeyValuePairs(iface.DHCP4Overrides)
+	}
+	if iface.DHCP6Overrides != "" {
+		ethConfig.DHCP6Overrides = parseKeyValuePairs(iface.DHCP6Overrides)
+	}
+	
+	config.Network.Ethernets[iface.Name] = ethConfig
+	return nil
 }
 
 func generateEthernetConfig(config *NetplanConfig, formData FormData) (*NetplanConfig, error) {
+	// Legacy function for backward compatibility
+	if len(formData.Interfaces) == 0 {
+		return nil, fmt.Errorf("no interface data provided")
+	}
+	
+	err := addEthernetToConfig(config, formData.Interfaces[0])
+	if err != nil {
+		return nil, err
+	}
+	
+	return config, nil
+}
+
+func addBondToConfig(config *NetplanConfig, iface InterfaceDefinition) error {
+	if iface.BondInterfaces == "" {
+		return fmt.Errorf("bond interfaces are required for bond %s", iface.Name)
+	}
+	
+	bondInterfaces := parseCommaSeparated(iface.BondInterfaces)
+	
+	// Initialize ethernets map if it doesn't exist
+	if config.Network.Ethernets == nil {
+		config.Network.Ethernets = make(map[string]EthernetConfig)
+	}
+	
+	// Add ethernet declarations for bond interfaces with dhcp4: false
+	for _, ifaceName := range bondInterfaces {
+		dhcp4 := false
+		config.Network.Ethernets[ifaceName] = EthernetConfig{
+			DHCP4: &dhcp4,
+		}
+	}
+	
+	if config.Network.Bonds == nil {
+		config.Network.Bonds = make(map[string]BondConfig)
+	}
+	
+	bondConfig := BondConfig{
+		Interfaces: bondInterfaces,
+		Parameters: BondParameters{Mode: iface.BondMode},
+	}
+	
+	// Set DHCP or static configuration
+	if !iface.UseStatic {
+		dhcp4 := true
+		bondConfig.DHCP4 = &dhcp4
+	} else {
+		// When static is selected, explicitly set dhcp4: false
+		dhcp4 := false
+		bondConfig.DHCP4 = &dhcp4
+	}
+	
+	// Parse addresses
+	if iface.Addresses != "" {
+		bondConfig.Addresses = parseCommaSeparated(iface.Addresses)
+	}
+	
+	// Set gateways
+	if iface.Gateway4 != "" {
+		bondConfig.Gateway4 = iface.Gateway4
+	}
+	if iface.Gateway6 != "" {
+		bondConfig.Gateway6 = iface.Gateway6
+	}
+	
+	// Parse nameservers
+	if iface.Nameservers != "" {
+		nameservers := parseCommaSeparated(iface.Nameservers)
+		bondConfig.Nameservers = &NameserversConfig{Addresses: nameservers}
+	}
+	
+	config.Network.Bonds[iface.Name] = bondConfig
+	return nil
+}
+
+func generateBondConfig(config *NetplanConfig, formData FormData) (*NetplanConfig, error) {
+	// Legacy function for backward compatibility
+	if len(formData.Interfaces) == 0 {
+		return nil, fmt.Errorf("no interface data provided")
+	}
+	
+	err := addBondToConfig(config, formData.Interfaces[0])
+	if err != nil {
+		return nil, err
+	}
+	
+	return config, nil
+}
+
+func addBridgeToConfig(config *NetplanConfig, iface InterfaceDefinition) error {
+	if iface.BridgeInterfaces == "" {
+		return fmt.Errorf("bridge interfaces are required for bridge %s", iface.Name)
+	}
+	
+	bridgeInterfaces := parseCommaSeparated(iface.BridgeInterfaces)
+	
+	// Initialize ethernets map if it doesn't exist
+	if config.Network.Ethernets == nil {
+		config.Network.Ethernets = make(map[string]EthernetConfig)
+	}
+	
+	// Add ethernet declarations for bridge interfaces with dhcp4: false
+	// But only if they're not already defined (could be bonds)
+	for _, ifaceName := range bridgeInterfaces {
+		// Check if this interface is already defined as a bond
+		if config.Network.Bonds != nil {
+			if _, exists := config.Network.Bonds[ifaceName]; exists {
+				// This is a bond interface, don't add ethernet declaration
+				continue
+			}
+		}
+		
+		// Check if this interface is already defined as an ethernet
+		if _, exists := config.Network.Ethernets[ifaceName]; !exists {
+			dhcp4 := false
+			config.Network.Ethernets[ifaceName] = EthernetConfig{
+				DHCP4: &dhcp4,
+			}
+		}
+	}
+	
+	if config.Network.Bridges == nil {
+		config.Network.Bridges = make(map[string]BridgeConfig)
+	}
+	
+	bridgeConfig := BridgeConfig{
+		Interfaces: bridgeInterfaces,
+	}
+	
+	// Set DHCP or static configuration
+	if !iface.UseStatic {
+		dhcp4 := true
+		bridgeConfig.DHCP4 = &dhcp4
+	} else {
+		// When static is selected, explicitly set dhcp4: false
+		dhcp4 := false
+		bridgeConfig.DHCP4 = &dhcp4
+	}
+	
+	// Parse addresses
+	if iface.Addresses != "" {
+		bridgeConfig.Addresses = parseCommaSeparated(iface.Addresses)
+	}
+	
+	// Set gateways
+	if iface.Gateway4 != "" {
+		bridgeConfig.Gateway4 = iface.Gateway4
+	}
+	if iface.Gateway6 != "" {
+		bridgeConfig.Gateway6 = iface.Gateway6
+	}
+	
+	// Parse nameservers
+	if iface.Nameservers != "" {
+		nameservers := parseCommaSeparated(iface.Nameservers)
+		bridgeConfig.Nameservers = &NameserversConfig{Addresses: nameservers}
+	}
+	
+	config.Network.Bridges[iface.Name] = bridgeConfig
+	return nil
+}
+
+func generateBridgeConfig(config *NetplanConfig, formData FormData) (*NetplanConfig, error) {
+	// Legacy function for backward compatibility
+	if len(formData.Interfaces) == 0 {
+		return nil, fmt.Errorf("no interface data provided")
+	}
+	
+	err := addBridgeToConfig(config, formData.Interfaces[0])
+	if err != nil {
+		return nil, err
+	}
+	
+	return config, nil
+}
 	config.Network.Ethernets = make(map[string]EthernetConfig)
 	
 	ethConfig := EthernetConfig{}

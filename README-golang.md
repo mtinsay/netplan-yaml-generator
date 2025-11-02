@@ -5,12 +5,13 @@ A standalone Go web application that provides the same netplan YAML generation f
 ## 🌟 Features
 
 ### Web Interface
-- **Single-page application** with intuitive form controls
+- **Multiple interface support** - Add unlimited ethernet, bond, and bridge interfaces
+- **Complex configurations** - Bridge over bonded interfaces supported
+- **Dynamic interface cards** with type-specific configuration fields
 - **Real-time YAML generation** with syntax highlighting
+- **JSON API** for automation and integration
 - **Responsive design** that works on desktop and mobile
-- **Copy to clipboard** functionality
-- **Form validation** and error handling
-- **Dynamic form fields** based on interface type
+- **Copy to clipboard** functionality and form validation
 
 ### Network Configuration
 - **Ethernet interfaces**: DHCP or static IP configuration
@@ -76,14 +77,15 @@ make test
 ## 📋 Usage
 
 1. **Open the web interface** at `http://localhost:8080`
-2. **Select interface type**: Ethernet, Bond, or Bridge
-3. **Configure settings**:
-   - Interface name (e.g., eth0, bond0, br0)
-   - Network renderer (networkd or NetworkManager)
-   - DHCP or static IP configuration
-   - Additional settings based on interface type
-4. **Click "Generate Netplan YAML"**
-5. **Copy the generated YAML** to your netplan configuration file
+2. **Add interfaces** by clicking "Add Interface"
+3. **Configure each interface**:
+   - Select interface type (Ethernet, Bond, or Bridge)
+   - Set interface name (e.g., eth0, bond0, br0)
+   - Choose DHCP or static IP configuration
+   - Configure type-specific settings (bond modes, bridge interfaces, etc.)
+4. **Create complex topologies** like bridges over bonds
+5. **Click "Generate Netplan YAML"** to create the configuration
+6. **Copy the generated YAML** to your netplan configuration file
 
 ## 🔧 Configuration
 
@@ -184,6 +186,34 @@ network:
       interfaces:
         - eth0
         - eth1
+      addresses:
+        - 192.168.100.1/24
+```
+
+### Complex Configuration Example (Bridge over Bond)
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: false
+    eth1:
+      dhcp4: false
+    eth2:
+      dhcp4: true
+  bonds:
+    bond0:
+      interfaces:
+        - eth0
+        - eth1
+      parameters:
+        mode: 802.3ad
+      dhcp4: false
+  bridges:
+    br0:
+      interfaces:
+        - bond0
       addresses:
         - 192.168.100.1/24
 ```
